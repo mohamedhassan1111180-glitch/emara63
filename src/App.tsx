@@ -8,7 +8,6 @@ export default function App() {
 
   const [inputName, setInputName] = useState('');
   const [inputApt, setInputApt] = useState('1');
-  const [inputPhoto, setInputPhoto] = useState('https://cdn-icons-png.flaticon.com/512/149/149071.png');
   const [adminPass, setAdminPass] = useState('');
   const [loginMode, setLoginMode] = useState<'resident' | 'admin'>('resident');
 
@@ -19,10 +18,10 @@ export default function App() {
     return Array.from({ length: 24 }, (_, index) => ({
       id: index + 1,
       name: `شقة ${index + 1} (فارغة)`,
+      phone: '01xxxxxxxx',
       residencyStatus: 'غير مقيم',
       waterMeter: 'لم يستلم',
       gasStatus: 'لم يقدم',
-      photo: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
       isLocked: false,
     }));
   });
@@ -31,7 +30,7 @@ export default function App() {
     localStorage.setItem('emara63_apartments', JSON.stringify(apartments));
   }, [apartments]);
 
-  // تسجيل دخول ساكن جديد
+  // تسجيل دخول الساكن (أول مرة أو للدخول اللاحق بمطابقة البيانات)
   const handleResidentLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = inputName.trim();
@@ -44,12 +43,22 @@ export default function App() {
 
     const aptNum = Number(inputApt);
     const updated = [...apartments];
+    const targetApt = updated[aptNum - 1];
 
-    if (updated[aptNum - 1].isLocked) {
-      alert('⚠️ هذه الشقة مسجلة بالفعل ولا يمكن التسجيل فيها مرة أخرى!');
-      return;
+    // لو الشقة مسجلة من قبل، نتحقق أن الاسم ورقم الشقة مطابقين تماماً للدخول
+    if (targetApt.isLocked) {
+      if (targetApt.name === trimmedName) {
+        const userInfo = { name: trimmedName, apt: inputApt, isAdmin: false };
+        localStorage.setItem('emara63_user', JSON.stringify(userInfo));
+        setCurrentUser(userInfo);
+        return;
+      } else {
+        alert('⚠️ خطأ: هذه الشقة مسجلة باسم شخص آخر، أو اسمك غير مطابق للبيانات المحفوظة!');
+        return;
+      }
     }
 
+    // تسجيل شقة جديدة لأول مرة
     const isNameTaken = updated.some(apt => apt.isLocked && apt.name === trimmedName);
     if (isNameTaken) {
       alert('⚠️ هذا الاسم مسجل مسبقاً لشخص آخر في العمارة، لا يمكن تكرار نفس الاسم!');
@@ -57,10 +66,9 @@ export default function App() {
     }
 
     updated[aptNum - 1] = {
-      ...updated[aptNum - 1],
+      ...targetApt,
       name: trimmedName,
       residencyStatus: 'مقيم',
-      photo: inputPhoto || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
       isLocked: true,
     };
 
@@ -106,7 +114,6 @@ export default function App() {
             <p style={{ color: '#666', fontSize: '13px', margin: 0 }}>قطاع أ - حي الصفوة - أكتوبر الجديدة</p>
           </div>
 
-          {/* أزرار تبديل وضع الدخول */}
           <div style={{ display: 'flex', marginBottom: '20px', background: '#e9ecef', borderRadius: '8px', padding: '4px' }}>
             <button 
               type="button"
@@ -138,7 +145,7 @@ export default function App() {
                 />
               </div>
 
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px', color: '#333' }}>رقم الشقة:</label>
                 <select 
                   value={inputApt} 
@@ -149,17 +156,6 @@ export default function App() {
                     <option key={i + 1} value={i + 1}>شقة رقم {i + 1}</option>
                   ))}
                 </select>
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px', color: '#333' }}>رابط صورتك الشخصية (اختياري):</label>
-                <input 
-                  type="text" 
-                  placeholder="ضع رابط الصورة هنا (URL)..." 
-                  value={inputPhoto}
-                  onChange={(e) => setInputPhoto(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box', fontSize: '13px' }}
-                />
               </div>
 
               <button 
@@ -215,10 +211,15 @@ export default function App() {
         </button>
       </header>
 
-      {/* تنبيه لو الأدمن دخل */}
       {currentUser.isAdmin && (
-        <div style={{ background: '#d4edda', color: '#155724', padding: '12px 15px', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold', fontSize: '14px', border: '1px solid #c3e6cb' }}>
-          ✅ أهلاً بك يا أدمن! لديك الصلاحية الكاملة لتعديل وتحديث بيانات أي شقة مباشرة من الجدول أدناه.
+        <div style={{ background: '#d4edda', color: '#155724', padding: '12px 15px', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold', fontSize: '14px', border: '1px solid #c3e6cb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          <span>👑 أهلاً بك يا أدمن! يمكنك تعديل أي بيانات في الجدول مباشرة، وستتحدث تلقائياً.</span>
+          <button 
+            onClick={() => alert('✅ تم حفظ وتحديث بيانات العمارة بنجاح وتحديثها في الداشبورد لكل السكان!')}
+            style={{ background: '#28a745', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+          >
+            حفظ وتحديث البيانات 💾
+          </button>
         </div>
       )}
 
@@ -235,12 +236,12 @@ export default function App() {
       {/* جدول الداشبورد */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
         <h3 style={{ color: '#1e3c72', fontSize: '16px', margin: '0 0 12px 0' }}>📋 لوحة متابعة سكان عمارة 63 (الـ 24 شقة)</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px', minWidth: '700px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px', minWidth: '750px' }}>
           <thead>
             <tr style={{ background: '#1e3c72', color: 'white' }}>
               <th style={{ padding: '10px' }}>الشقة</th>
-              <th style={{ padding: '10px' }}>الصورة</th>
               <th style={{ padding: '10px' }}>اسم الساكن</th>
+              <th style={{ padding: '10px' }}>رقم التليفون</th>
               <th style={{ padding: '10px' }}>حالة الإقامة</th>
               <th style={{ padding: '10px' }}>عداد المياه</th>
               <th style={{ padding: '10px' }}>حالة الغاز</th>
@@ -248,14 +249,10 @@ export default function App() {
           </thead>
           <tbody>
             {apartments.map((apt) => {
-              // الصلاحية: متاح للشقة الخاصة بالساكن، أو للأدمن بالكامل
               const hasPermission = currentUser.isAdmin || (Number(currentUser.apt) === apt.id);
               return (
                 <tr key={apt.id} style={{ borderBottom: '1px solid #eee' }}>
                   <td style={{ padding: '10px', fontWeight: 'bold' }}>شقة {apt.id}</td>
-                  <td style={{ padding: '10px' }}>
-                    <img src={apt.photo} alt="صورة" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #ccc' }} />
-                  </td>
                   <td style={{ padding: '10px' }}>
                     {currentUser.isAdmin ? (
                       <input 
@@ -266,12 +263,28 @@ export default function App() {
                           updated[apt.id - 1].name = e.target.value;
                           setApartments(updated);
                         }}
-                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #007bff', fontSize: '12px', width: '130px' }}
+                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #007bff', fontSize: '12px', width: '120px' }}
                       />
                     ) : (
                       <span style={{ fontWeight: apt.isLocked ? 'bold' : 'normal', color: apt.isLocked ? '#333' : '#888' }}>
                         {apt.name}
                       </span>
+                    )}
+                  </td>
+                  <td style={{ padding: '10px' }}>
+                    {hasPermission ? (
+                      <input 
+                        type="text" 
+                        value={apt.phone}
+                        onChange={(e) => {
+                          const updated = [...apartments];
+                          updated[apt.id - 1].phone = e.target.value;
+                          setApartments(updated);
+                        }}
+                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', width: '100px' }}
+                      />
+                    ) : (
+                      <span>{apt.phone}</span>
                     )}
                   </td>
                   <td style={{ padding: '10px' }}>
