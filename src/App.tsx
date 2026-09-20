@@ -27,25 +27,34 @@ export default function App() {
     localStorage.setItem('emara63_apartments', JSON.stringify(apartments));
   }, [apartments]);
 
-  // التحقق من أن الاسم ثلاثي أو رباعي على الأقل
+  // التحقق من الاسم الثلاثي وعدم تكرار الاسم أو الشقة
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = inputName.trim();
     const nameParts = trimmedName.split(/\s+/);
 
     if (nameParts.length < 3) {
-      alert('⚠️ تنبيه: يجب إدخال الاسم ثلاثياً على الأقل (ثلاثة أسماء أو أكثر بالعربي)!');
+      alert('⚠️ تنبيه: يجب إدخال الاسم ثلاثياً على الأقل بالعربي!');
       return;
     }
 
     const aptNum = Number(inputApt);
     const updated = [...apartments];
 
+    // 1. التأكد أن الشقة لم تُسجل من قبل
     if (updated[aptNum - 1].isLocked) {
-      alert('هذه الشقة مسجلة بالفعل ولا يمكن تغيير بياناتها!');
+      alert('⚠️ هذه الشقة مسجلة بالفعل ولا يمكن التسجيل فيها مرة أخرى!');
       return;
     }
 
+    // 2. التأكد أن الاسم غير مكرر في شقة أخرى
+    const nameExists = updated.some(apt => apt.name === trimmedName);
+    if (nameExists) {
+      alert('⚠️ هذا الاسم مسجل مسبقاً في شقة أخرى، لا يمكن تكرار نفس الاسم!');
+      return;
+    }
+
+    // حفظ البيانات بنجاح
     updated[aptNum - 1] = {
       ...updated[aptNum - 1],
       name: trimmedName,
@@ -59,7 +68,7 @@ export default function App() {
     setCurrentUser(userInfo);
   };
 
-  // حساب عدد السكان المسجلين فعلياً لتوزيع مبلغ 18500 عليهم فقط
+  // حساب عدد السكان المسجلين فعلياً وتوزيع المبلغ عليهم فقط
   const registeredResidentsCount = apartments.filter(apt => apt.occupancy === 'ساكن').length;
   const totalCamerasCost = 18500;
   const costPerRegisteredApt = registeredResidentsCount > 0 ? (totalCamerasCost / registeredResidentsCount).toFixed(1) : '0';
@@ -129,17 +138,17 @@ export default function App() {
         </button>
       </header>
 
-      {/* قسم مصاريف الكاميرات وشفرة الباب وتوزيعها على السكان المسجلين فقط */}
+      {/* قسم التكلفة وتوزيعها على السكان المسجلين فقط */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderRight: '5px solid #ffc107' }}>
         <h3 style={{ color: '#1e3c72', fontSize: '15px', margin: '0 0 8px 0' }}>📷 تكلفة سيستم الكاميرات وشفرة الباب</h3>
         <p style={{ margin: 0, fontSize: '14px', color: '#333' }}>
           الإجمالي المطلوب: <strong style={{ color: '#d9534f' }}>{totalCamerasCost} جنيه</strong> | 
-          عدد السكان المسجلين حالياً: <strong style={{ color: '#007bff' }}>{registeredResidentsCount} ساكن</strong> | 
-          الحصة الفردية لكل ساكن مسجل: <strong style={{ color: '#28a745' }}>{costPerRegisteredApt} جنيه</strong>
+          عدد السكان المسجلين: <strong style={{ color: '#007bff' }}>{registeredResidentsCount} ساكن</strong> | 
+          الحصة الفردية: <strong style={{ color: '#28a745' }}>{costPerRegisteredApt} جنيه</strong>
         </p>
       </div>
 
-      {/* جدول الداشبورد الشامل لكل السكان */}
+      {/* جدول الداشبورد */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
         <h3 style={{ color: '#1e3c72', fontSize: '16px', margin: '0 0 12px 0' }}>📋 لوحة متابعة سكان عمارة 63 (الـ 24 شقة)</h3>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px', minWidth: '650px' }}>
