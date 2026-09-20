@@ -29,7 +29,7 @@ export default function App() {
     localStorage.setItem('emara63_apartments', JSON.stringify(apartments));
   }, [apartments]);
 
-  // تسجيل دخول الساكن بمرونة تامة دون قفل مزعج
+  // تسجيل دخول الساكن بمرونة تامة وبدون قيود مزعجة
   const handleResidentLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = inputName.trim();
@@ -50,7 +50,7 @@ export default function App() {
       return;
     }
 
-    // تحديث أو تسجيل الساكن في الشقة مباشرة
+    // تسجيل الساكن في الشقة مباشرة وتحديثها أوتوماتيك
     updated[aptNum - 1] = {
       ...updated[aptNum - 1],
       name: trimmedName,
@@ -72,6 +72,14 @@ export default function App() {
       setCurrentUser(adminInfo);
     } else {
       alert('⚠️ كلمة مرور المسؤول غير صحيحة!');
+    }
+  };
+
+  // زر مسح وتصفير الذاكرة لحل أي مشكلة عالقة
+  const handleResetApp = () => {
+    if (window.confirm('هل أنت متأكد من رغبتك في مسح وإعادة ضبط بيانات العمارة بالكامل؟')) {
+      localStorage.clear();
+      window.location.reload();
     }
   };
 
@@ -198,13 +206,21 @@ export default function App() {
 
       {currentUser.isAdmin && (
         <div style={{ background: '#d4edda', color: '#155724', padding: '12px 15px', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold', fontSize: '14px', border: '1px solid #c3e6cb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <span>👑 أهلاً بك يا أدمن! يمكنك تعديل أي بيانات في الجدول مباشرة، وستحفظ فوراً.</span>
-          <button 
-            onClick={() => alert('✅ تم حفظ التعديلات وتحديث الداشبورد لكل السكان بنجاح!')}
-            style={{ background: '#28a745', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
-          >
-            حفظ التعديلات 💾
-          </button>
+          <span>👑 أهلاً بك يا أدمن! يمكنك تعديل أي بيانات في الجدول مباشرة، وستحفظ وتتحدث فوراً.</span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              onClick={() => alert('✅ تم حفظ التعديلات وتحديث الداشبورد لكل السكان بنجاح!')}
+              style={{ background: '#28a745', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+            >
+              حفظ التعديلات 💾
+            </button>
+            <button 
+              onClick={handleResetApp}
+              style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+            >
+              إعادة ضبط التطبيق 🔄
+            </button>
+          </div>
         </div>
       )}
 
