@@ -22,7 +22,6 @@ export default function App() {
       residencyStatus: 'غير مقيم',
       waterMeter: 'لم يستلم',
       gasStatus: 'لم يقدم',
-      isLocked: false,
     }));
   });
 
@@ -30,7 +29,7 @@ export default function App() {
     localStorage.setItem('emara63_apartments', JSON.stringify(apartments));
   }, [apartments]);
 
-  // تسجيل دخول الساكن (أول مرة أو للدخول اللاحق بمطابقة البيانات)
+  // تسجيل دخول الساكن بمرونة تامة دون قفل مزعج
   const handleResidentLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = inputName.trim();
@@ -43,33 +42,19 @@ export default function App() {
 
     const aptNum = Number(inputApt);
     const updated = [...apartments];
-    const targetApt = updated[aptNum - 1];
 
-    // لو الشقة مسجلة من قبل، نتحقق أن الاسم ورقم الشقة مطابقين تماماً للدخول
-    if (targetApt.isLocked) {
-      if (targetApt.name === trimmedName) {
-        const userInfo = { name: trimmedName, apt: inputApt, isAdmin: false };
-        localStorage.setItem('emara63_user', JSON.stringify(userInfo));
-        setCurrentUser(userInfo);
-        return;
-      } else {
-        alert('⚠️ خطأ: هذه الشقة مسجلة باسم شخص آخر، أو اسمك غير مطابق للبيانات المحفوظة!');
-        return;
-      }
-    }
-
-    // تسجيل شقة جديدة لأول مرة
-    const isNameTaken = updated.some(apt => apt.isLocked && apt.name === trimmedName);
+    // التأكد من عدم تكرار نفس الاسم في شقة أخرى
+    const isNameTaken = updated.some((apt, index) => index !== (aptNum - 1) && apt.name === trimmedName);
     if (isNameTaken) {
       alert('⚠️ هذا الاسم مسجل مسبقاً لشخص آخر في العمارة، لا يمكن تكرار نفس الاسم!');
       return;
     }
 
+    // تحديث أو تسجيل الساكن في الشقة مباشرة
     updated[aptNum - 1] = {
-      ...targetApt,
+      ...updated[aptNum - 1],
       name: trimmedName,
       residencyStatus: 'مقيم',
-      isLocked: true,
     };
 
     setApartments(updated);
@@ -78,7 +63,7 @@ export default function App() {
     setCurrentUser(userInfo);
   };
 
-  // تسجيل دخول الأدمن بكلمة المرور (admin63)
+  // تسجيل دخول الأدمن
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (adminPass === 'admin63') {
@@ -90,7 +75,7 @@ export default function App() {
     }
   };
 
-  const registeredResidentsCount = apartments.filter(apt => apt.isLocked).length;
+  const registeredResidentsCount = apartments.filter(apt => !apt.name.includes('فارغة')).length;
   const totalCamerasCost = 18500;
   const costPerRegisteredApt = registeredResidentsCount > 0 ? (totalCamerasCost / registeredResidentsCount).toFixed(1) : '0';
 
@@ -213,12 +198,12 @@ export default function App() {
 
       {currentUser.isAdmin && (
         <div style={{ background: '#d4edda', color: '#155724', padding: '12px 15px', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold', fontSize: '14px', border: '1px solid #c3e6cb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <span>👑 أهلاً بك يا أدمن! يمكنك تعديل أي بيانات في الجدول مباشرة، وستتحدث تلقائياً.</span>
+          <span>👑 أهلاً بك يا أدمن! يمكنك تعديل أي بيانات في الجدول مباشرة، وستحفظ فوراً.</span>
           <button 
-            onClick={() => alert('✅ تم حفظ وتحديث بيانات العمارة بنجاح وتحديثها في الداشبورد لكل السكان!')}
+            onClick={() => alert('✅ تم حفظ التعديلات وتحديث الداشبورد لكل السكان بنجاح!')}
             style={{ background: '#28a745', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
           >
-            حفظ وتحديث البيانات 💾
+            حفظ التعديلات 💾
           </button>
         </div>
       )}
@@ -263,10 +248,10 @@ export default function App() {
                           updated[apt.id - 1].name = e.target.value;
                           setApartments(updated);
                         }}
-                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #007bff', fontSize: '12px', width: '120px' }}
+                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #007bff', fontSize: '12px', width: '130px' }}
                       />
                     ) : (
-                      <span style={{ fontWeight: apt.isLocked ? 'bold' : 'normal', color: apt.isLocked ? '#333' : '#888' }}>
+                      <span style={{ fontWeight: !apt.name.includes('فارغة') ? 'bold' : 'normal', color: !apt.name.includes('فارغة') ? '#333' : '#888' }}>
                         {apt.name}
                       </span>
                     )}
