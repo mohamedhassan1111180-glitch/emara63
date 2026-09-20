@@ -9,7 +9,6 @@ export default function App() {
   const [inputName, setInputName] = useState('');
   const [inputApt, setInputApt] = useState('1');
 
-  // تخزين بيانات الشقق الـ 24
   const [apartments, setApartments] = useState(() => {
     const savedApts = localStorage.getItem('emara63_apartments');
     if (savedApts) return JSON.parse(savedApts);
@@ -27,7 +26,6 @@ export default function App() {
     localStorage.setItem('emara63_apartments', JSON.stringify(apartments));
   }, [apartments]);
 
-  // التحقق من الاسم الثلاثي وعدم تكرار الاسم أو الشقة
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = inputName.trim();
@@ -41,20 +39,20 @@ export default function App() {
     const aptNum = Number(inputApt);
     const updated = [...apartments];
 
-    // 1. التأكد أن الشقة لم تُسجل من قبل
+    // 1. فحص ما إذا كانت الشقة مسجلة ومقفولة من قبل
     if (updated[aptNum - 1].isLocked) {
       alert('⚠️ هذه الشقة مسجلة بالفعل ولا يمكن التسجيل فيها مرة أخرى!');
       return;
     }
 
-    // 2. التأكد أن الاسم غير مكرر في شقة أخرى
-    const nameExists = updated.some(apt => apt.name === trimmedName);
-    if (nameExists) {
-      alert('⚠️ هذا الاسم مسجل مسبقاً في شقة أخرى، لا يمكن تكرار نفس الاسم!');
+    // 2. فحص ما إذا كان الاسم متكرراً في أي شقة أخرى مسجلة
+    const isNameTaken = updated.some(apt => apt.isLocked && apt.name === trimmedName);
+    if (isNameTaken) {
+      alert('⚠️ هذا الاسم مسجل مسبقاً لشخص آخر في العمارة، لا يمكن تكرار نفس الاسم!');
       return;
     }
 
-    // حفظ البيانات بنجاح
+    // حفظ التسجيل بنجاح
     updated[aptNum - 1] = {
       ...updated[aptNum - 1],
       name: trimmedName,
@@ -68,15 +66,25 @@ export default function App() {
     setCurrentUser(userInfo);
   };
 
-  // حساب عدد السكان المسجلين فعلياً وتوزيع المبلغ عليهم فقط
   const registeredResidentsCount = apartments.filter(apt => apt.occupancy === 'ساكن').length;
   const totalCamerasCost = 18500;
   const costPerRegisteredApt = registeredResidentsCount > 0 ? (totalCamerasCost / registeredResidentsCount).toFixed(1) : '0';
 
   if (!currentUser) {
     return (
-      <div style={{ padding: '20px', fontFamily: 'Cairo, sans-serif', direction: 'rtl', background: 'linear-gradient(135deg, #1e3c72, #2a5298)', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <div style={{ background: 'white', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+      <div style={{ 
+        padding: '20px', 
+        fontFamily: 'Cairo, sans-serif', 
+        direction: 'rtl', 
+        background: 'linear-gradient(rgba(30, 60, 114, 0.85), rgba(42, 82, 152, 0.85)), url("https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80")', 
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        minHeight: '100vh', 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+      }}>
+        <div style={{ background: 'rgba(255, 255, 255, 0.95)', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 15px 35px rgba(0,0,0,0.4)', backdropFilter: 'blur(5px)' }}>
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             <h2 style={{ color: '#1e3c72', margin: '0 0 5px 0' }}>🏢 عمارة 63</h2>
             <p style={{ color: '#666', fontSize: '13px', margin: 0 }}>قطاع أ - حي الصفوة - أكتوبر الجديدة</p>
@@ -110,7 +118,7 @@ export default function App() {
 
             <button 
               type="submit" 
-              style={{ width: '100%', padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}
+              style={{ width: '100%', padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,123,255,0.3)' }}
             >
               تسجيل ودخول الداشبورد
             </button>
