@@ -9,18 +9,17 @@ export default function App() {
   const [inputName, setInputName] = useState('');
   const [inputApt, setInputApt] = useState('1');
 
-  // تخزين بيانات الشقق الـ 24 بحيث تحفظ دائماً على المتصفح
+  // تخزين بيانات الشقق الـ 24
   const [apartments, setApartments] = useState(() => {
     const savedApts = localStorage.getItem('emara63_apartments');
     if (savedApts) return JSON.parse(savedApts);
     return Array.from({ length: 24 }, (_, index) => ({
       id: index + 1,
       name: `شقة ${index + 1} (فارغة)`,
-      phone: '01xxxxxxxx',
       waterMeter: 'لم يستلم',
       gasStatus: 'لم يقدم',
       occupancy: 'غير مسكون',
-      isLocked: false, // لضمان عدم تغيير الاسم بعد التسجيل الأول
+      isLocked: false,
     }));
   });
 
@@ -28,39 +27,42 @@ export default function App() {
     localStorage.setItem('emara63_apartments', JSON.stringify(apartments));
   }, [apartments]);
 
-  // تسجيل الساكن لمرة واحدة وثبات البيانات
+  // التحقق من أن الاسم ثلاثي أو رباعي على الأقل
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputName.trim()) {
-      alert('الرجاء كتابة الاسم الثلاثي بالعربي');
+    const trimmedName = inputName.trim();
+    const nameParts = trimmedName.split(/\s+/);
+
+    if (nameParts.length < 3) {
+      alert('⚠️ تنبيه: يجب إدخال الاسم ثلاثياً على الأقل (ثلاثة أسماء أو أكثر بالعربي)!');
       return;
     }
 
     const aptNum = Number(inputApt);
     const updated = [...apartments];
 
-    // لو الشقة متسجلة قبل كدة ومقفولة، نمنع التغيير
     if (updated[aptNum - 1].isLocked) {
-      alert('هذه الشقة مسجلة بالفعل ولا يمكن تعديل بياناتها!');
+      alert('هذه الشقة مسجلة بالفعل ولا يمكن تغيير بياناتها!');
       return;
     }
 
     updated[aptNum - 1] = {
       ...updated[aptNum - 1],
-      name: inputName,
+      name: trimmedName,
       occupancy: 'ساكن',
       isLocked: true,
     };
 
     setApartments(updated);
-    const userInfo = { name: inputName, apt: inputApt };
+    const userInfo = { name: trimmedName, apt: inputApt };
     localStorage.setItem('emara63_user', JSON.stringify(userInfo));
     setCurrentUser(userInfo);
   };
 
-  // إجمالي تكلفة الكاميرات وشفرة الباب
+  // حساب عدد السكان المسجلين فعلياً لتوزيع مبلغ 18500 عليهم فقط
+  const registeredResidentsCount = apartments.filter(apt => apt.occupancy === 'ساكن').length;
   const totalCamerasCost = 18500;
-  const costPerApt = (totalCamerasCost / 24).toFixed(1);
+  const costPerRegisteredApt = registeredResidentsCount > 0 ? (totalCamerasCost / registeredResidentsCount).toFixed(1) : '0';
 
   if (!currentUser) {
     return (
@@ -73,10 +75,10 @@ export default function App() {
           
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>الاسم الثلاثي بالعربي:</label>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>الاسم الثلاثي أو الرباعي:</label>
               <input 
                 type="text" 
-                placeholder="اكتب اسمك الثلاثي هنا..." 
+                placeholder="اكتب اسمك ثلاثياً على الأقل..." 
                 value={inputName}
                 onChange={(e) => setInputName(e.target.value)}
                 style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box', fontSize: '14px' }}
@@ -127,12 +129,13 @@ export default function App() {
         </button>
       </header>
 
-      {/* قسم مصاريف الكاميرات وشفرة الباب المطلوبة */}
+      {/* قسم مصاريف الكاميرات وشفرة الباب وتوزيعها على السكان المسجلين فقط */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderRight: '5px solid #ffc107' }}>
         <h3 style={{ color: '#1e3c72', fontSize: '15px', margin: '0 0 8px 0' }}>📷 تكلفة سيستم الكاميرات وشفرة الباب</h3>
         <p style={{ margin: 0, fontSize: '14px', color: '#333' }}>
-          إجمالي المبلغ المطلوب للعمارة: <strong style={{ color: '#d9534f' }}>{totalCamerasCost} جنيه</strong> 
-          (مقسمة بالتساوي على 24 شقة = <strong style={{ color: '#28a745' }}>{costPerApt} جنيه</strong> لكل شقة).
+          الإجمالي المطلوب: <strong style={{ color: '#d9534f' }}>{totalCamerasCost} جنيه</strong> | 
+          عدد السكان المسجلين حالياً: <strong style={{ color: '#007bff' }}>{registeredResidentsCount} ساكن</strong> | 
+          الحصة الفردية لكل ساكن مسجل: <strong style={{ color: '#28a745' }}>{costPerRegisteredApt} جنيه</strong>
         </p>
       </div>
 
@@ -150,48 +153,53 @@ export default function App() {
             </tr>
           </thead>
           <tbody>
-            {apartments.map((apt) => (
-              <tr key={apt.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '10px', fontWeight: 'bold' }}>شقة {apt.id}</td>
-                <td style={{ padding: '10px', fontWeight: apt.occupancy === 'ساكن' ? 'bold' : 'normal', color: apt.occupancy === 'ساكن' ? '#333' : '#888' }}>
-                  {apt.name}
-                </td>
-                <td style={{ padding: '10px' }}>
-                  <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', background: apt.occupancy === 'ساكن' ? '#d4edda' : '#e2e3e5', color: apt.occupancy === 'ساكن' ? '#155724' : '#383d41' }}>
-                    {apt.occupancy}
-                  </span>
-                </td>
-                <td style={{ padding: '10px' }}>
-                  <select 
-                    value={apt.waterMeter}
-                    onChange={(e) => {
-                      const updated = [...apartments];
-                      updated[apt.id - 1].waterMeter = e.target.value;
-                      setApartments(updated);
-                    }}
-                    style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
-                  >
-                    <option value="مستلم">مستلم</option>
-                    <option value="لم يستلم">لم يستلم</option>
-                  </select>
-                </td>
-                <td style={{ padding: '10px' }}>
-                  <select 
-                    value={apt.gasStatus}
-                    onChange={(e) => {
-                      const updated = [...apartments];
-                      updated[apt.id - 1].gasStatus = e.target.value;
-                      setApartments(updated);
-                    }}
-                    style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
-                  >
-                    <option value="تم التركيب">تم التركيب</option>
-                    <option value="تم التقديم">تم التقديم</option>
-                    <option value="لم يقدم">لم يقدم</option>
-                  </select>
-                </td>
-              </tr>
-            ))}
+            {apartments.map((apt) => {
+              const isMyApt = Number(currentUser.apt) === apt.id;
+              return (
+                <tr key={apt.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: '10px', fontWeight: 'bold' }}>شقة {apt.id}</td>
+                  <td style={{ padding: '10px', fontWeight: apt.occupancy === 'ساكن' ? 'bold' : 'normal', color: apt.occupancy === 'ساكن' ? '#333' : '#888' }}>
+                    {apt.name}
+                  </td>
+                  <td style={{ padding: '10px' }}>
+                    <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', background: apt.occupancy === 'ساكن' ? '#d4edda' : '#e2e3e5', color: apt.occupancy === 'ساكن' ? '#155724' : '#383d41' }}>
+                      {apt.occupancy}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px' }}>
+                    <select 
+                      value={apt.waterMeter}
+                      disabled={!isMyApt}
+                      onChange={(e) => {
+                        const updated = [...apartments];
+                        updated[apt.id - 1].waterMeter = e.target.value;
+                        setApartments(updated);
+                      }}
+                      style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', background: isMyApt ? 'white' : '#f9f9f9', cursor: isMyApt ? 'pointer' : 'not-allowed' }}
+                    >
+                      <option value="مستلم">مستلم</option>
+                      <option value="لم يستلم">لم يستلم</option>
+                    </select>
+                  </td>
+                  <td style={{ padding: '10px' }}>
+                    <select 
+                      value={apt.gasStatus}
+                      disabled={!isMyApt}
+                      onChange={(e) => {
+                        const updated = [...apartments];
+                        updated[apt.id - 1].gasStatus = e.target.value;
+                        setApartments(updated);
+                      }}
+                      style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', background: isMyApt ? 'white' : '#f9f9f9', cursor: isMyApt ? 'pointer' : 'not-allowed' }}
+                    >
+                      <option value="تم التركيب">تم التركيب</option>
+                      <option value="تم التقديم">تم التقديم</option>
+                      <option value="لم يقدم">لم يقدم</option>
+                    </select>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
