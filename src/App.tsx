@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, doc, setDoc, getDocs } from 'firebase/firestore';
 
-// ⚠️ استبدل البيانات دي ببيانات مشروعك الحقيقية من لوحة تحكم Firebase
+// 🏢 تم إدخال بيانات مشروعك الخاص بـ Firebase هنا بدقة
 const firebaseConfig = {
-  apiKey: "AIzaSyYOUR_API_KEY_HERE",
-  authDomain: "emara63-xxxx.firebaseapp.com",
-  projectId: "emara63-xxxx",
-  storageBucket: "emara63-xxxx.appspot.com",
-  messagingSenderId: "xxxxxxxx",
-  appId: "1:xxxx:web:xxxx"
+  apiKey: "AIzaSyB7fBFUOpvDljRyS8EVw-c",
+  authDomain: "emara63-303b1.firebaseapp.com",
+  projectId: "emara63-303b1",
+  storageBucket: "emara63-303b1.firebasestorage.app",
+  messagingSenderId: "349478615775",
+  appId: "1:349478615775:web:a6f8527afa"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -365,7 +365,7 @@ export default function App() {
                       <option value="غير موافق">غير موافق</option>
                     </select>
                   </td>
-                  <td style={{ padding: '10px' }}>
+                  <td style={{ padding: '10px' =>
                     <select 
                       value={apt.waterMeter}
                       disabled={!hasPermission}
