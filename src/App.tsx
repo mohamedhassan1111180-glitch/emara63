@@ -365,7 +365,7 @@ export default function App() {
                       <option value="غير موافق">غير موافق</option>
                     </select>
                   </td>
-                  <td style={{ padding: '10px' =>
+                  <td style={{ padding: '10px' }}>
                     <select 
                       value={apt.waterMeter}
                       disabled={!hasPermission}
