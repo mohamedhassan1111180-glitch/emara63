@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, doc, setDoc, getDocs } from 'firebase/firestore';
 
-// 🏢 تم إدخال بيانات مشروعك الخاص بـ Firebase هنا بدقة
+// 🏢 بيانات مشروعك السحابي على Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyB7fBFUOpvDljRyS8EVw-c",
   authDomain: "emara63-303b1.firebaseapp.com",
@@ -129,9 +129,10 @@ export default function App() {
     }
   };
 
+  // الحساب المباشر والتلقائي للحصة الفردية بناءً على الموافقين
   const approvedCount = apartments.filter(apt => apt.cameraApproval === 'موافق').length;
   const totalCamerasCost = 18500;
-  const costPerApprovedApt = approvedCount > 0 ? (totalCamerasCost / approvedCount).toFixed(1) : '0';
+  const costPerApprovedApt = approvedCount > 0 ? Math.round(totalCamerasCost / approvedCount) : totalCamerasCost;
 
   if (!currentUser) {
     return (
@@ -255,16 +256,16 @@ export default function App() {
           <span>👑 أهلاً بك يا أدمن! التعديلات تحفظ سحابياً وتظهر لكل السكان فوراً.</span>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button 
-              onClick={() => alert('✅ التعديلات محفوظة سحابياً ومتاحة لكل السكان لحظياً!')}
+              onClick={() => window.location.reload()}
               style={{ background: '#28a745', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
             >
-              حفظ التعديلات السحابية 💾
+              تحديث البيانات 🔄
             </button>
             <button 
               onClick={handleResetApp}
               style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
             >
-              إعادة ضبط التطبيق 🔄
+              إعادة ضبط التطبيق 🗑️
             </button>
           </div>
         </div>
