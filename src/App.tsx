@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, doc, setDoc, getDocs } from 'firebase/firestore';
 
-// 🏢 بيانات مشروعك السحابي على Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyB7fBFUOpvDljRyS8EVw-c",
   authDomain: "emara63-303b1.firebaseapp.com",
@@ -38,15 +37,14 @@ export default function App() {
 
   const [apartments, setApartments] = useState(initialApartments);
 
-  // جلب البيانات لحظياً من سحابة فايربيس لكل الجيران
   useEffect(() => {
     const fetchApartments = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "apartments"));
         if (!querySnapshot.empty) {
           const loadedApts: any[] = [];
-          querySnapshot.forEach((doc) => {
-            loadedApts.push(doc.data());
+          querySnapshot.forEach((docSnap) => {
+            loadedApts.push(docSnap.data());
           });
           loadedApts.sort((a, b) => a.id - b.id);
           setApartments(loadedApts);
@@ -129,7 +127,6 @@ export default function App() {
     }
   };
 
-  // الحساب المباشر والتلقائي للحصة الفردية بناءً على الموافقين
   const approvedCount = apartments.filter(apt => apt.cameraApproval === 'موافق').length;
   const totalCamerasCost = 18500;
   const costPerApprovedApt = approvedCount > 0 ? Math.round(totalCamerasCost / approvedCount) : totalCamerasCost;
@@ -271,7 +268,6 @@ export default function App() {
         </div>
       )}
 
-      {/* قسم التكلفة وتوزيعها على الموافقين فقط أوتوماتيك */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderRight: '5px solid #ffc107' }}>
         <h3 style={{ color: '#1e3c72', fontSize: '15px', margin: '0 0 8px 0' }}>📷 تكلفة سيستم الكاميرات وشفرة الباب</h3>
         <p style={{ margin: 0, fontSize: '14px', color: '#333' }}>
@@ -281,7 +277,6 @@ export default function App() {
         </p>
       </div>
 
-      {/* جدول الداشبورد الشامل */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
         <h3 style={{ color: '#1e3c72', fontSize: '16px', margin: '0 0 12px 0' }}>📋 لوحة متابعة سكان عمارة 63 (الـ 24 شقة)</h3>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px', minWidth: '800px' }}>
