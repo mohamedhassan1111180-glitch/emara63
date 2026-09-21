@@ -11,7 +11,7 @@ export default function App() {
   const [adminPass, setAdminPass] = useState('');
   const [loginMode, setLoginMode] = useState<'resident' | 'admin'>('resident');
 
-  // تخزين بيانات الشقق الـ 24
+  // تخزين بيانات الشقق الـ 24 مع عمود الموافقة على الكاميرات
   const [apartments, setApartments] = useState(() => {
     const savedApts = localStorage.getItem('emara63_apartments');
     if (savedApts) return JSON.parse(savedApts);
@@ -22,6 +22,7 @@ export default function App() {
       residencyStatus: 'غير مقيم',
       waterMeter: 'لم يستلم',
       gasStatus: 'لم يقدم',
+      cameraApproval: 'غير موافق', // موافق أو غير موافق
     }));
   });
 
@@ -29,7 +30,6 @@ export default function App() {
     localStorage.setItem('emara63_apartments', JSON.stringify(apartments));
   }, [apartments]);
 
-  // تسجيل دخول الساكن بمرونة تامة وبدون قيود مزعجة
   const handleResidentLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = inputName.trim();
@@ -43,14 +43,12 @@ export default function App() {
     const aptNum = Number(inputApt);
     const updated = [...apartments];
 
-    // التأكد من عدم تكرار نفس الاسم في شقة أخرى
     const isNameTaken = updated.some((apt, index) => index !== (aptNum - 1) && apt.name === trimmedName);
     if (isNameTaken) {
       alert('⚠️ هذا الاسم مسجل مسبقاً لشخص آخر في العمارة، لا يمكن تكرار نفس الاسم!');
       return;
     }
 
-    // تسجيل الساكن في الشقة مباشرة وتحديثها أوتوماتيك
     updated[aptNum - 1] = {
       ...updated[aptNum - 1],
       name: trimmedName,
@@ -63,7 +61,6 @@ export default function App() {
     setCurrentUser(userInfo);
   };
 
-  // تسجيل دخول الأدمن
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (adminPass === 'admin63') {
@@ -75,17 +72,17 @@ export default function App() {
     }
   };
 
-  // زر مسح وتصفير الذاكرة لحل أي مشكلة عالقة
   const handleResetApp = () => {
-    if (window.confirm('هل أنت متأكد من رغبتك في مسح وإعادة ضبط بيانات العمارة بالكامل؟')) {
+    if (window.confirm('هل أنت متأكد من مسح وإعادة ضبط بيانات العمارة بالكامل؟')) {
       localStorage.clear();
       window.location.reload();
     }
   };
 
-  const registeredResidentsCount = apartments.filter(apt => !apt.name.includes('فارغة')).length;
+  // حساب عدد الموافقين على الكاميرات وتوزيع المبلغ عليهم فقط أوتوماتيك
+  const approvedCount = apartments.filter(apt => apt.cameraApproval === ' موافق' || apt.cameraApproval === 'موافق').length;
   const totalCamerasCost = 18500;
-  const costPerRegisteredApt = registeredResidentsCount > 0 ? (totalCamerasCost / registeredResidentsCount).toFixed(1) : '0';
+  const costPerApprovedApt = approvedCount > 0 ? (totalCamerasCost / approvedCount).toFixed(1) : '0';
 
   if (!currentUser) {
     return (
@@ -206,7 +203,7 @@ export default function App() {
 
       {currentUser.isAdmin && (
         <div style={{ background: '#d4edda', color: '#155724', padding: '12px 15px', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold', fontSize: '14px', border: '1px solid #c3e6cb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <span>👑 أهلاً بك يا أدمن! يمكنك تعديل أي بيانات في الجدول مباشرة، وستحفظ وتتحدث فوراً.</span>
+          <span>👑 أهلاً بك يا أدمن! يمكنك تعديل أي بيانات في الجدول مباشرة ومتابعة موافقات الكاميرات.</span>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button 
               onClick={() => alert('✅ تم حفظ التعديلات وتحديث الداشبورد لكل السكان بنجاح!')}
@@ -224,26 +221,27 @@ export default function App() {
         </div>
       )}
 
-      {/* قسم التكلفة وتوزيعها على السكان المسجلين فقط */}
+      {/* قسم التكلفة وتوزيعها على الموافقين فقط أوتوماتيك */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderRight: '5px solid #ffc107' }}>
         <h3 style={{ color: '#1e3c72', fontSize: '15px', margin: '0 0 8px 0' }}>📷 تكلفة سيستم الكاميرات وشفرة الباب</h3>
         <p style={{ margin: 0, fontSize: '14px', color: '#333' }}>
           الإجمالي المطلوب: <strong style={{ color: '#d9534f' }}>{totalCamerasCost} جنيه</strong> | 
-          عدد السكان المسجلين: <strong style={{ color: '#007bff' }}>{registeredResidentsCount} ساكن</strong> | 
-          الحصة الفردية: <strong style={{ color: '#28a745' }}>{costPerRegisteredApt} جنيه</strong>
+          عدد الموافقين: <strong style={{ color: '#007bff' }}>{approvedCount} ساكن</strong> | 
+          الحصة الفردية لكل موافق: <strong style={{ color: '#28a745' }}>{costPerApprovedApt} جنيه</strong>
         </p>
       </div>
 
-      {/* جدول الداشبورد */}
+      {/* جدول الداشبورد الشامل */}
       <div style={{ background: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
         <h3 style={{ color: '#1e3c72', fontSize: '16px', margin: '0 0 12px 0' }}>📋 لوحة متابعة سكان عمارة 63 (الـ 24 شقة)</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px', minWidth: '750px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px', minWidth: '800px' }}>
           <thead>
             <tr style={{ background: '#1e3c72', color: 'white' }}>
               <th style={{ padding: '10px' }}>الشقة</th>
               <th style={{ padding: '10px' }}>اسم الساكن</th>
               <th style={{ padding: '10px' }}>رقم التليفون</th>
               <th style={{ padding: '10px' }}>حالة الإقامة</th>
+              <th style={{ padding: '10px' }}>موافقة الكاميرات</th>
               <th style={{ padding: '10px' }}>عداد المياه</th>
               <th style={{ padding: '10px' }}>حالة الغاز</th>
             </tr>
@@ -264,7 +262,7 @@ export default function App() {
                           updated[apt.id - 1].name = e.target.value;
                           setApartments(updated);
                         }}
-                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #007bff', fontSize: '12px', width: '130px' }}
+                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #007bff', fontSize: '12px', width: '120px' }}
                       />
                     ) : (
                       <span style={{ fontWeight: !apt.name.includes('فارغة') ? 'bold' : 'normal', color: !apt.name.includes('فارغة') ? '#333' : '#888' }}>
@@ -282,7 +280,7 @@ export default function App() {
                           updated[apt.id - 1].phone = e.target.value;
                           setApartments(updated);
                         }}
-                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', width: '100px' }}
+                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', width: '90px' }}
                       />
                     ) : (
                       <span>{apt.phone}</span>
@@ -301,6 +299,21 @@ export default function App() {
                     >
                       <option value="مقيم">مقيم</option>
                       <option value="غير مقيم">غير مقيم</option>
+                    </select>
+                  </td>
+                  <td style={{ padding: '10px' }}>
+                    <select 
+                      value={apt.cameraApproval}
+                      disabled={!hasPermission}
+                      onChange={(e) => {
+                        const updated = [...apartments];
+                        updated[apt.id - 1].cameraApproval = e.target.value;
+                        setApartments(updated);
+                      }}
+                      style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', background: hasPermission ? '#e2f0d9' : '#f9f9f9', cursor: hasPermission ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}
+                    >
+                      <option value="موافق">موافق</option>
+                      <option value="غير موافق">غير موافق</option>
                     </select>
                   </td>
                   <td style={{ padding: '10px' }}>
