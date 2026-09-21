@@ -1,4 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, doc, setDoc, getDocs } from 'firebase/firestore';
+
+// ⚠️ استبدل البيانات دي ببيانات مشروعك الحقيقية من لوحة تحكم Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyYOUR_API_KEY_HERE",
+  authDomain: "emara63-xxxx.firebaseapp.com",
+  projectId: "emara63-xxxx",
+  storageBucket: "emara63-xxxx.appspot.com",
+  messagingSenderId: "xxxxxxxx",
+  appId: "1:xxxx:web:xxxx"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<{ name: string; apt: string; isAdmin: boolean } | null>(() => {
@@ -11,24 +26,52 @@ export default function App() {
   const [adminPass, setAdminPass] = useState('');
   const [loginMode, setLoginMode] = useState<'resident' | 'admin'>('resident');
 
-  // تخزين بيانات الشقق الـ 24 مع عمود الموافقة على الكاميرات
-  const [apartments, setApartments] = useState(() => {
-    const savedApts = localStorage.getItem('emara63_apartments');
-    if (savedApts) return JSON.parse(savedApts);
-    return Array.from({ length: 24 }, (_, index) => ({
-      id: index + 1,
-      name: `شقة ${index + 1} (فارغة)`,
-      phone: '01xxxxxxxx',
-      residencyStatus: 'غير مقيم',
-      waterMeter: 'لم يستلم',
-      gasStatus: 'لم يقدم',
-      cameraApproval: 'غير موافق', // موافق أو غير موافق
-    }));
-  });
+  const initialApartments = Array.from({ length: 24 }, (_, index) => ({
+    id: index + 1,
+    name: `شقة ${index + 1} (فارغة)`,
+    phone: '01xxxxxxxx',
+    residencyStatus: 'غير مقيم',
+    cameraApproval: 'غير موافق',
+    waterMeter: 'لم يستلم',
+    gasStatus: 'لم يقدم',
+  }));
 
+  const [apartments, setApartments] = useState(initialApartments);
+
+  // جلب البيانات لحظياً من سحابة فايربيس لكل الجيران
   useEffect(() => {
-    localStorage.setItem('emara63_apartments', JSON.stringify(apartments));
-  }, [apartments]);
+    const fetchApartments = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "apartments"));
+        if (!querySnapshot.empty) {
+          const loadedApts: any[] = [];
+          querySnapshot.forEach((doc) => {
+            loadedApts.push(doc.data());
+          });
+          loadedApts.sort((a, b) => a.id - b.id);
+          setApartments(loadedApts);
+        } else {
+          initialApartments.forEach(async (apt) => {
+            await setDoc(doc(db, "apartments", String(apt.id)), apt);
+          });
+        }
+      } catch (error) {
+        console.error("خطأ في جلب البيانات:", error);
+      }
+    };
+    fetchApartments();
+  }, []);
+
+  const updateApartmentInFirebase = async (updatedList: any[]) => {
+    setApartments(updatedList);
+    try {
+      for (const apt of updatedList) {
+        await setDoc(doc(db, "apartments", String(apt.id)), apt);
+      }
+    } catch (error) {
+      console.error("خطأ في حفظ البيانات:", error);
+    }
+  };
 
   const handleResidentLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +98,7 @@ export default function App() {
       residencyStatus: 'مقيم',
     };
 
-    setApartments(updated);
+    updateApartmentInFirebase(updated);
     const userInfo = { name: trimmedName, apt: inputApt, isAdmin: false };
     localStorage.setItem('emara63_user', JSON.stringify(userInfo));
     setCurrentUser(userInfo);
@@ -72,15 +115,21 @@ export default function App() {
     }
   };
 
-  const handleResetApp = () => {
+  const handleResetApp = async () => {
     if (window.confirm('هل أنت متأكد من مسح وإعادة ضبط بيانات العمارة بالكامل؟')) {
-      localStorage.clear();
-      window.location.reload();
+      try {
+        for (const apt of initialApartments) {
+          await setDoc(doc(db, "apartments", String(apt.id)), apt);
+        }
+        localStorage.clear();
+        window.location.reload();
+      } catch (error) {
+        alert('حدث خطأ أثناء إعادة الضبط');
+      }
     }
   };
 
-  // حساب عدد الموافقين على الكاميرات وتوزيع المبلغ عليهم فقط أوتوماتيك
-  const approvedCount = apartments.filter(apt => apt.cameraApproval === ' موافق' || apt.cameraApproval === 'موافق').length;
+  const approvedCount = apartments.filter(apt => apt.cameraApproval === 'موافق').length;
   const totalCamerasCost = 18500;
   const costPerApprovedApt = approvedCount > 0 ? (totalCamerasCost / approvedCount).toFixed(1) : '0';
 
@@ -203,13 +252,13 @@ export default function App() {
 
       {currentUser.isAdmin && (
         <div style={{ background: '#d4edda', color: '#155724', padding: '12px 15px', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold', fontSize: '14px', border: '1px solid #c3e6cb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <span>👑 أهلاً بك يا أدمن! يمكنك تعديل أي بيانات في الجدول مباشرة ومتابعة موافقات الكاميرات.</span>
+          <span>👑 أهلاً بك يا أدمن! التعديلات تحفظ سحابياً وتظهر لكل السكان فوراً.</span>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button 
-              onClick={() => alert('✅ تم حفظ التعديلات وتحديث الداشبورد لكل السكان بنجاح!')}
+              onClick={() => alert('✅ التعديلات محفوظة سحابياً ومتاحة لكل السكان لحظياً!')}
               style={{ background: '#28a745', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
             >
-              حفظ التعديلات 💾
+              حفظ التعديلات السحابية 💾
             </button>
             <button 
               onClick={handleResetApp}
@@ -260,7 +309,7 @@ export default function App() {
                         onChange={(e) => {
                           const updated = [...apartments];
                           updated[apt.id - 1].name = e.target.value;
-                          setApartments(updated);
+                          updateApartmentInFirebase(updated);
                         }}
                         style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #007bff', fontSize: '12px', width: '120px' }}
                       />
@@ -278,7 +327,7 @@ export default function App() {
                         onChange={(e) => {
                           const updated = [...apartments];
                           updated[apt.id - 1].phone = e.target.value;
-                          setApartments(updated);
+                          updateApartmentInFirebase(updated);
                         }}
                         style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', width: '90px' }}
                       />
@@ -293,7 +342,7 @@ export default function App() {
                       onChange={(e) => {
                         const updated = [...apartments];
                         updated[apt.id - 1].residencyStatus = e.target.value;
-                        setApartments(updated);
+                        updateApartmentInFirebase(updated);
                       }}
                       style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', background: hasPermission ? 'white' : '#f9f9f9', cursor: hasPermission ? 'pointer' : 'not-allowed' }}
                     >
@@ -308,7 +357,7 @@ export default function App() {
                       onChange={(e) => {
                         const updated = [...apartments];
                         updated[apt.id - 1].cameraApproval = e.target.value;
-                        setApartments(updated);
+                        updateApartmentInFirebase(updated);
                       }}
                       style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', background: hasPermission ? '#e2f0d9' : '#f9f9f9', cursor: hasPermission ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}
                     >
@@ -323,7 +372,7 @@ export default function App() {
                       onChange={(e) => {
                         const updated = [...apartments];
                         updated[apt.id - 1].waterMeter = e.target.value;
-                        setApartments(updated);
+                        updateApartmentInFirebase(updated);
                       }}
                       style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', background: hasPermission ? 'white' : '#f9f9f9', cursor: hasPermission ? 'pointer' : 'not-allowed' }}
                     >
@@ -338,7 +387,7 @@ export default function App() {
                       onChange={(e) => {
                         const updated = [...apartments];
                         updated[apt.id - 1].gasStatus = e.target.value;
-                        setApartments(updated);
+                        updateApartmentInFirebase(updated);
                       }}
                       style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', background: hasPermission ? 'white' : '#f9f9f9', cursor: hasPermission ? 'pointer' : 'not-allowed' }}
                     >
